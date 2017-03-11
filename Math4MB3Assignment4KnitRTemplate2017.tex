@@ -1,4 +1,54 @@
-\documentclass[12pt]{article}
+\documentclass[12pt]{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
 
 \input 4mbapreamble
 \usepackage{amsfonts}
@@ -27,7 +77,7 @@
 \rfoot{}
 \renewcommand\headrulewidth{0pt} % Removes funny header line
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 
 \begin{center}
@@ -69,17 +119,21 @@ measles (in London and Liverpool, England, from 1944 to 1994).  Depending on whi
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<read.ymdc>>=
-read.ymdc <- function(filename){
-  data <- read.csv(filename, skip=6)
-  ymdcdata <- NULL
-  
-  ymdcdata$date <- as.Date(paste(as.character(data$year), as.character(data$month),as.character(data$day), sep = "-"))
-  ymdcdata$cases <- data$cases
-  ymdcdata <- as.data.frame(ymdcdata)
-  return(ymdcdata)
-}
-@
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{read.ymdc} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{filename}\hlstd{)\{}
+  \hlstd{data} \hlkwb{<-} \hlkwd{read.csv}\hlstd{(filename,} \hlkwc{skip}\hlstd{=}\hlnum{6}\hlstd{)}
+  \hlstd{ymdcdata} \hlkwb{<-} \hlkwa{NULL}
+
+  \hlstd{ymdcdata}\hlopt{$}\hlstd{date} \hlkwb{<-} \hlkwd{as.Date}\hlstd{(}\hlkwd{paste}\hlstd{(}\hlkwd{as.character}\hlstd{(data}\hlopt{$}\hlstd{year),} \hlkwd{as.character}\hlstd{(data}\hlopt{$}\hlstd{month),}\hlkwd{as.character}\hlstd{(data}\hlopt{$}\hlstd{day),} \hlkwc{sep} \hlstd{=} \hlstr{"-"}\hlstd{))}
+  \hlstd{ymdcdata}\hlopt{$}\hlstd{cases} \hlkwb{<-} \hlstd{data}\hlopt{$}\hlstd{cases}
+  \hlstd{ymdcdata} \hlkwb{<-} \hlkwd{as.data.frame}\hlstd{(ymdcdata)}
+  \hlkwd{return}\hlstd{(ymdcdata)}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 }
 \end{proof}
@@ -101,28 +155,32 @@ read.ymdc <- function(filename){
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<time.plot>>=
-time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
-  if (dev.cur() == 1L && !identical(add, FALSE)) {
-        warning("'add' will be ignored as there is no existing plot")
-        add <- FALSE
-  }
-  #Moving average smoothing
-  if(isTRUE(ma.smooth)){
-    olddata <- ymdcdata
-    #Replace middle values by moving average
-    for (i in seq(sides+1,length(olddata$cases)-sides,1)){
-      ymdcdata$cases[i] <- mean(olddata$cases[i-sides:i+sides])
-    }
-    #Replace ends of data with NAs
-    ymdcdata$cases[1:sides] <- NA
-    ymdcdata$cases[sides:length(olddata$cases)-sides+1] <- NA
-  }
-  if (isTRUE(add)) {
-    lines(cases~date,ymdcdata, ...)
-  }else plot(cases~date,ymdcdata, ...)
-}
-@
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{time.plot} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{ymdcdata}\hlstd{,} \hlkwc{ma.smooth}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{sides} \hlstd{=} \hlnum{1}\hlstd{,} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{...}\hlstd{)\{}
+  \hlkwa{if} \hlstd{(}\hlkwd{dev.cur}\hlstd{()} \hlopt{==} \hlnum{1L} \hlopt{&& !}\hlkwd{identical}\hlstd{(add,} \hlnum{FALSE}\hlstd{)) \{}
+        \hlkwd{warning}\hlstd{(}\hlstr{"'add' will be ignored as there is no existing plot"}\hlstd{)}
+        \hlstd{add} \hlkwb{<-} \hlnum{FALSE}
+  \hlstd{\}}
+  \hlcom{#Moving average smoothing}
+  \hlkwa{if}\hlstd{(}\hlkwd{isTRUE}\hlstd{(ma.smooth))\{}
+    \hlstd{olddata} \hlkwb{<-} \hlstd{ymdcdata}
+    \hlcom{#Replace middle values by moving average}
+    \hlkwa{for} \hlstd{(i} \hlkwa{in} \hlkwd{seq}\hlstd{(sides}\hlopt{+}\hlnum{1}\hlstd{,}\hlkwd{length}\hlstd{(olddata}\hlopt{$}\hlstd{cases)}\hlopt{-}\hlstd{sides,}\hlnum{1}\hlstd{))\{}
+      \hlstd{ymdcdata}\hlopt{$}\hlstd{cases[i]} \hlkwb{<-} \hlkwd{mean}\hlstd{(olddata}\hlopt{$}\hlstd{cases[i}\hlopt{-}\hlstd{sides}\hlopt{:}\hlstd{i}\hlopt{+}\hlstd{sides])}
+    \hlstd{\}}
+    \hlcom{#Replace ends of data with NAs}
+    \hlstd{ymdcdata}\hlopt{$}\hlstd{cases[}\hlnum{1}\hlopt{:}\hlstd{sides]} \hlkwb{<-} \hlnum{NA}
+    \hlstd{ymdcdata}\hlopt{$}\hlstd{cases[sides}\hlopt{:}\hlkwd{length}\hlstd{(olddata}\hlopt{$}\hlstd{cases)}\hlopt{-}\hlstd{sides}\hlopt{+}\hlnum{1}\hlstd{]} \hlkwb{<-} \hlnum{NA}
+  \hlstd{\}}
+  \hlkwa{if} \hlstd{(}\hlkwd{isTRUE}\hlstd{(add)) \{}
+    \hlkwd{lines}\hlstd{(cases}\hlopt{~}\hlstd{date,ymdcdata, ...)}
+  \hlstd{\}}\hlkwa{else} \hlkwd{plot}\hlstd{(cases}\hlopt{~}\hlstd{date,ymdcdata, ...)}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 }
 \end{proof}
@@ -139,38 +197,46 @@ time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
   Note that if \code{v} is a vector containing a time series of
   interest, you can obtain and plot its \emph{frequency} periodogram
   as follows.
-<<eval=FALSE>>=
-v <- c()
-s <- spectrum(v, plot=FALSE)
-plot( s$freq, s$spec, type="l")
-@ 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{v} \hlkwb{<-} \hlkwd{c}\hlstd{()}
+\hlstd{s} \hlkwb{<-} \hlkwd{spectrum}\hlstd{(v,} \hlkwc{plot}\hlstd{=}\hlnum{FALSE}\hlstd{)}
+\hlkwd{plot}\hlstd{( s}\hlopt{$}\hlstd{freq, s}\hlopt{$}\hlstd{spec,} \hlkwc{type}\hlstd{=}\hlstr{"l"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 \end{enumerate}
 
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<periodogram>>=
-periodogram <- function(ymdcdata, timerange=1:length(ymdcdata$date), add=FALSE, ...){
-  if (dev.cur() == 1L && !identical(add, FALSE)) {
-        warning("'add' will be ignored as there is no existing plot")
-        add <- FALSE
-  }
-  
-  #Set data outside timerange to NAs
-  ymdcdata[setdiff(1:length(ymdcdata$date),timerange),] <- NA
-  
-  
-  ycdata <- ymdcdata
-  ycdata$date <- as.numeric(ycdata$date-ycdata$date[1])/365
-  
-  s <- spectrum(ycdata, plot=FALSE)
-  
-  if (isTRUE(add)) {lon.data
-    lines(1/(s$freq), s$spec, ...)
-  }else plot(1/(s$freq), s$spec[,1], ...)
-  
-}
-@
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{periodogram} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{ymdcdata}\hlstd{,} \hlkwc{timerange}\hlstd{=}\hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(ymdcdata}\hlopt{$}\hlstd{date),} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{...}\hlstd{)\{}
+  \hlkwa{if} \hlstd{(}\hlkwd{dev.cur}\hlstd{()} \hlopt{==} \hlnum{1L} \hlopt{&& !}\hlkwd{identical}\hlstd{(add,} \hlnum{FALSE}\hlstd{)) \{}
+        \hlkwd{warning}\hlstd{(}\hlstr{"'add' will be ignored as there is no existing plot"}\hlstd{)}
+        \hlstd{add} \hlkwb{<-} \hlnum{FALSE}
+  \hlstd{\}}
+
+  \hlcom{#Set data outside timerange to NAs}
+  \hlstd{ymdcdata[}\hlkwd{setdiff}\hlstd{(}\hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(ymdcdata}\hlopt{$}\hlstd{date),timerange),]} \hlkwb{<-} \hlnum{NA}
+
+
+  \hlstd{ycdata} \hlkwb{<-} \hlstd{ymdcdata}
+  \hlstd{ycdata}\hlopt{$}\hlstd{date} \hlkwb{<-} \hlkwd{as.numeric}\hlstd{(ycdata}\hlopt{$}\hlstd{date}\hlopt{-}\hlstd{ycdata}\hlopt{$}\hlstd{date[}\hlnum{1}\hlstd{])}\hlopt{/}\hlnum{365}
+
+  \hlstd{s} \hlkwb{<-} \hlkwd{spectrum}\hlstd{(ycdata,} \hlkwc{plot}\hlstd{=}\hlnum{FALSE}\hlstd{)}
+
+  \hlkwa{if} \hlstd{(}\hlkwd{isTRUE}\hlstd{(add)) \{lon.data}
+    \hlkwd{lines}\hlstd{(}\hlnum{1}\hlopt{/}\hlstd{(s}\hlopt{$}\hlstd{freq), s}\hlopt{$}\hlstd{spec, ...)}
+  \hlstd{\}}\hlkwa{else} \hlkwd{plot}\hlstd{(}\hlnum{1}\hlopt{/}\hlstd{(s}\hlopt{$}\hlstd{freq), s}\hlopt{$}\hlstd{spec[,}\hlnum{1}\hlstd{], ...)}
+
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 }
 \end{proof}
@@ -188,18 +254,26 @@ periodogram <- function(ymdcdata, timerange=1:length(ymdcdata$date), add=FALSE, 
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<measlesplots>>=
-lon.data <- read.ymdc("meas_uk__lon_1944-94_wk.csv")
-par(mfrow=c(2,1))
-time.plot(lon.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in London, England",bty="l",col="red")
-periodogram(lon.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{lon.data} \hlkwb{<-} \hlkwd{read.ymdc}\hlstd{(}\hlstr{"meas_uk__lon_1944-94_wk.csv"}\hlstd{)}
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{2}\hlstd{,}\hlnum{1}\hlstd{))}
+\hlkwd{time.plot}\hlstd{(lon.data,} \hlkwc{ma.smooth}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{type}\hlstd{=}\hlstr{"l"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Date"}\hlstd{,} \hlkwc{ylab}\hlstd{=}\hlstr{"Cases"}\hlstd{,} \hlkwc{main}\hlstd{=}\hlstr{"Weekly Cases of Measles in London, England"}\hlstd{,}\hlkwc{bty}\hlstd{=}\hlstr{"l"}\hlstd{,}\hlkwc{col}\hlstd{=}\hlstr{"red"}\hlstd{)}
+\hlkwd{periodogram}\hlstd{(lon.data,} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{type}\hlstd{=}\hlstr{"l"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Years"}\hlstd{,} \hlkwc{ylab}\hlstd{=}\hlstr{""}\hlstd{,} \hlkwc{main}\hlstd{=}\hlstr{"Period Periodogram"}\hlstd{,}\hlkwc{bty}\hlstd{=}\hlstr{"l"}\hlstd{,}\hlkwc{col}\hlstd{=}\hlstr{"blue"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/measlesplots-1} 
+\begin{kframe}\begin{alltt}
+\hlstd{lpl.data} \hlkwb{<-} \hlkwd{read.ymdc}\hlstd{(}\hlstr{"meas_uk__lpl_1944-94_wk.csv"}\hlstd{)}
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{2}\hlstd{,}\hlnum{1}\hlstd{))}
+\hlkwd{time.plot}\hlstd{(lpl.data,} \hlkwc{ma.smooth}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{type}\hlstd{=}\hlstr{"l"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Date"}\hlstd{,} \hlkwc{ylab}\hlstd{=}\hlstr{"Cases"}\hlstd{,} \hlkwc{main}\hlstd{=}\hlstr{"Weekly Cases of Measles in Liverpool, England"}\hlstd{,} \hlkwc{bty}\hlstd{=}\hlstr{"l"}\hlstd{,} \hlkwc{col}\hlstd{=}\hlstr{"red"}\hlstd{)}
+\hlkwd{periodogram}\hlstd{(lpl.data,} \hlkwc{add}\hlstd{=}\hlnum{FALSE}\hlstd{,} \hlkwc{type}\hlstd{=}\hlstr{"l"}\hlstd{,} \hlkwc{xlab}\hlstd{=}\hlstr{"Years"}\hlstd{,} \hlkwc{ylab}\hlstd{=}\hlstr{""}\hlstd{,} \hlkwc{main}\hlstd{=}\hlstr{"Period Periodogram"}\hlstd{,}\hlkwc{bty}\hlstd{=}\hlstr{"l"}\hlstd{,}\hlkwc{col}\hlstd{=}\hlstr{"blue"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/measlesplots-2} 
 
-lpl.data <- read.ymdc("meas_uk__lpl_1944-94_wk.csv")
-par(mfrow=c(2,1))
-time.plot(lpl.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in Liverpool, England", bty="l", col="red")
-periodogram(lpl.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
-  
-@
+\end{knitrout}
 
 }
 \end{proof}
@@ -240,24 +314,28 @@ $I(t)$ is the number of infected individuals at time $t$.
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<SI.Gillespie>>=
-SI.Gillespie <- function(beta, N, I0, tmax){
-  timeseries <- c()
-  timeseries <- rbind(timeseries, c(0,I0))
-  index <- 1
-  while(timeseries[index,1] < tmax){
-    if (timeseries[index,2] < N){
-      rate <- beta*(timeseries[index,2])*(N-timeseries[index,2])
-      timestep <- rexp(n=1, rate= rate)
-      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep, timeseries[index,2]+1))
-    }else{
-      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep*3, timeseries[index,2]))
-    }
-    index <- index+1
-  }
-  return(timeseries)
-}
-@
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{SI.Gillespie} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{beta}\hlstd{,} \hlkwc{N}\hlstd{,} \hlkwc{I0}\hlstd{,} \hlkwc{tmax}\hlstd{)\{}
+  \hlstd{timeseries} \hlkwb{<-} \hlkwd{c}\hlstd{()}
+  \hlstd{timeseries} \hlkwb{<-} \hlkwd{rbind}\hlstd{(timeseries,} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,I0))}
+  \hlstd{index} \hlkwb{<-} \hlnum{1}
+  \hlkwa{while}\hlstd{(timeseries[index,}\hlnum{1}\hlstd{]} \hlopt{<} \hlstd{tmax)\{}
+    \hlkwa{if} \hlstd{(timeseries[index,}\hlnum{2}\hlstd{]} \hlopt{<} \hlstd{N)\{}
+      \hlstd{rate} \hlkwb{<-} \hlstd{beta}\hlopt{*}\hlstd{(timeseries[index,}\hlnum{2}\hlstd{])}\hlopt{*}\hlstd{(N}\hlopt{-}\hlstd{timeseries[index,}\hlnum{2}\hlstd{])}
+      \hlstd{timestep} \hlkwb{<-} \hlkwd{rexp}\hlstd{(}\hlkwc{n}\hlstd{=}\hlnum{1}\hlstd{,} \hlkwc{rate}\hlstd{= rate)}
+      \hlstd{timeseries} \hlkwb{<-} \hlkwd{rbind}\hlstd{(timeseries,} \hlkwd{c}\hlstd{(timeseries[index,}\hlnum{1}\hlstd{]}\hlopt{+}\hlstd{timestep, timeseries[index,}\hlnum{2}\hlstd{]}\hlopt{+}\hlnum{1}\hlstd{))}
+    \hlstd{\}}\hlkwa{else}\hlstd{\{}
+      \hlstd{timeseries} \hlkwb{<-} \hlkwd{rbind}\hlstd{(timeseries,} \hlkwd{c}\hlstd{(timeseries[index,}\hlnum{1}\hlstd{]}\hlopt{+}\hlstd{timestep}\hlopt{*}\hlnum{3}\hlstd{, timeseries[index,}\hlnum{2}\hlstd{]))}
+    \hlstd{\}}
+    \hlstd{index} \hlkwb{<-} \hlstd{index}\hlopt{+}\hlnum{1}
+  \hlstd{\}}
+  \hlkwd{return}\hlstd{(timeseries)}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 
 }
@@ -269,51 +347,62 @@ SI.Gillespie <- function(beta, N, I0, tmax){
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<SI.vec.fld>>=
-## Vector Field for SI model
-SI.vector.field <- function(t, vars, parms=c(beta=2,gamma=1)) {
-  with(as.list(c(parms, vars)), {
-    dx <- -beta*x*y # dS/dt
-    dy <- beta*x*y  # dI/dt
-    vec.fld <- c(dx=dx, dy=dy)
-    return(list(vec.fld)) # ode() requires a list
-  })
-}
-@
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## Vector Field for SI model}
+\hlstd{SI.vector.field} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{t}\hlstd{,} \hlkwc{vars}\hlstd{,} \hlkwc{parms}\hlstd{=}\hlkwd{c}\hlstd{(}\hlkwc{beta}\hlstd{=}\hlnum{2}\hlstd{,}\hlkwc{gamma}\hlstd{=}\hlnum{1}\hlstd{)) \{}
+  \hlkwd{with}\hlstd{(}\hlkwd{as.list}\hlstd{(}\hlkwd{c}\hlstd{(parms, vars)), \{}
+    \hlstd{dx} \hlkwb{<-} \hlopt{-}\hlstd{beta}\hlopt{*}\hlstd{x}\hlopt{*}\hlstd{y} \hlcom{# dS/dt}
+    \hlstd{dy} \hlkwb{<-} \hlstd{beta}\hlopt{*}\hlstd{x}\hlopt{*}\hlstd{y}  \hlcom{# dI/dt}
+    \hlstd{vec.fld} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlkwc{dx}\hlstd{=dx,} \hlkwc{dy}\hlstd{=dy)}
+    \hlkwd{return}\hlstd{(}\hlkwd{list}\hlstd{(vec.fld))} \hlcom{# ode() requires a list}
+  \hlstd{\})}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
-<<draw.soln,tidy=FALSE>>=
-## Draw solution
-library("deSolve")
-draw.soln <- function(ic=c(x=1,y=0), tmax=1, 
-                      times=seq(0,tmax,by=tmax/500), 
-                      func, parms, ... ) {
-  soln <- ode(ic, times, func, parms)
-  lines(times, soln[,"y"], col="blue", lwd=3, ... )
-}
-@ 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## Draw solution}
+\hlkwd{library}\hlstd{(}\hlstr{"deSolve"}\hlstd{)}
+\hlstd{draw.soln} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{ic}\hlstd{=}\hlkwd{c}\hlstd{(}\hlkwc{x}\hlstd{=}\hlnum{1}\hlstd{,}\hlkwc{y}\hlstd{=}\hlnum{0}\hlstd{),} \hlkwc{tmax}\hlstd{=}\hlnum{1}\hlstd{,}
+                      \hlkwc{times}\hlstd{=}\hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,tmax,}\hlkwc{by}\hlstd{=tmax}\hlopt{/}\hlnum{500}\hlstd{),}
+                      \hlkwc{func}\hlstd{,} \hlkwc{parms}\hlstd{,} \hlkwc{...} \hlstd{) \{}
+  \hlstd{soln} \hlkwb{<-} \hlkwd{ode}\hlstd{(ic, times, func, parms)}
+  \hlkwd{lines}\hlstd{(times, soln[,}\hlstr{"y"}\hlstd{],} \hlkwc{col}\hlstd{=}\hlstr{"blue"}\hlstd{,} \hlkwc{lwd}\hlstd{=}\hlnum{3}\hlstd{, ... )}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
-<<SI.Gillespie.plot,eval=FALSE, dev="tikz">>=
-beta <- 1
-I0 <- 1
-tmax <- 0.3
-N <- c(32, 10^2, 10^3, 10^4)
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{beta} \hlkwb{<-} \hlnum{1}
+\hlstd{I0} \hlkwb{<-} \hlnum{1}
+\hlstd{tmax} \hlkwb{<-} \hlnum{0.3}
+\hlstd{N} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{32}\hlstd{,} \hlnum{10}\hlopt{^}\hlnum{2}\hlstd{,} \hlnum{10}\hlopt{^}\hlnum{3}\hlstd{,} \hlnum{10}\hlopt{^}\hlnum{4}\hlstd{)}
 
-par(mfrow=c(length(N),1))
-for (j in 1:length(N)){
-  ## draw box for plot
-  plot(0,0,xlim=c(0,tmax),ylim=c(0,N[j]+1),xlab="Time", ylab="Prevalence (I)", main=paste("$\\N =", N[j]))
-  line <- c(1:30)
-  for (i in 1:length(line)) {
-    set.seed(line[i])
-    lines(SI.Gillespie(beta, N[j], I0, tmax),lty="dotted",
-            col=line[i+1]) # use a different line colour for each solution
-  }
-  draw.soln(ic=c(x=N[j]-I0,y=I0), tmax=tmax,
-            func= SI.vector.field,
-            parms=c(beta,gamma=1))
-}
-
-@
+\hlkwd{par}\hlstd{(}\hlkwc{mfrow}\hlstd{=}\hlkwd{c}\hlstd{(}\hlkwd{length}\hlstd{(N),}\hlnum{1}\hlstd{))}
+\hlkwa{for} \hlstd{(j} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(N))\{}
+  \hlcom{## draw box for plot}
+  \hlkwd{plot}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{xlim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,tmax),}\hlkwc{ylim}\hlstd{=}\hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,N[j]}\hlopt{+}\hlnum{1}\hlstd{),}\hlkwc{xlab}\hlstd{=}\hlstr{"Time"}\hlstd{,} \hlkwc{ylab}\hlstd{=}\hlstr{"Prevalence (I)"}\hlstd{,} \hlkwc{main}\hlstd{=}\hlkwd{paste}\hlstd{(}\hlstr{"$\textbackslash{}\textbackslash{}N ="}\hlstd{, N[j]))}
+  \hlstd{line} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{1}\hlopt{:}\hlnum{30}\hlstd{)}
+  \hlkwa{for} \hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(line)) \{}
+    \hlkwd{set.seed}\hlstd{(line[i])}
+    \hlkwd{lines}\hlstd{(}\hlkwd{SI.Gillespie}\hlstd{(beta, N[j], I0, tmax),}\hlkwc{lty}\hlstd{=}\hlstr{"dotted"}\hlstd{,}
+            \hlkwc{col}\hlstd{=line[i}\hlopt{+}\hlnum{1}\hlstd{])} \hlcom{# use a different line colour for each solution}
+  \hlstd{\}}
+  \hlkwd{draw.soln}\hlstd{(}\hlkwc{ic}\hlstd{=}\hlkwd{c}\hlstd{(}\hlkwc{x}\hlstd{=N[j]}\hlopt{-}\hlstd{I0,}\hlkwc{y}\hlstd{=I0),} \hlkwc{tmax}\hlstd{=tmax,}
+            \hlkwc{func}\hlstd{= SI.vector.field,}
+            \hlkwc{parms}\hlstd{=}\hlkwd{c}\hlstd{(beta,}\hlkwc{gamma}\hlstd{=}\hlnum{1}\hlstd{))}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 }
 \end{proof}
