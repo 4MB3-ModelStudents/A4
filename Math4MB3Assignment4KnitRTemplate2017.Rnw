@@ -107,11 +107,12 @@ time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
         warning("'add' will be ignored as there is no existing plot")
         add <- FALSE
   }
-  #Moving average smoothing
+  #Moving Average 
+  #Code fixed, but we can also replace this section with: filter(ymdcdata,rep(1,sides), method = "convolution")))
   if(isTRUE(ma.smooth)){
-    olddata <- ymdcdata
+        olddata <- ymdcdata
     #Replace middle values by moving average
-    for (i in seq(sides+1,length(olddata$cases)-sides,1)){
+    for (i in seq(sides,length(olddata$cases)-1,1)){
       ymdcdata$cases[i] <- mean(olddata$cases[i-sides:i+sides])
     }
     #Replace ends of data with NAs
@@ -120,7 +121,7 @@ time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
   }
   if (isTRUE(add)) {
     lines(cases~date,ymdcdata, ...)
-  }else plot(cases~date,ymdcdata, ...)
+  }else {plot(cases~date,ymdcdata, ...)}
 }
 @
 
