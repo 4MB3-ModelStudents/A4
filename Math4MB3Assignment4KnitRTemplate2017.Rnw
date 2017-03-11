@@ -1,0 +1,512 @@
+\documentclass[12pt]{article}
+
+\input 4mbapreamble
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzset{
+  int/.style={circle, draw=black, fill=blue!20, minimum size=3em},
+  init/.style={pin distance=1.2cm,pin edge={loop,thin,black}}
+}
+\tikzstyle{arrow} = [thick,black,->,>=stealth]
+\tikzstyle{pinstyleto} = [pin edge={<-,thick,black}]
+\tikzstyle{pinstyleout} = [pin edge={->,thick,black}]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FANCY HEADER AND FOOTER STUFF %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{fancyhdr,lastpage}
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer parameters
+%%%\lhead{Student Name: \theblank{4cm}}
+%%%\chead{}
+%%%\rhead{Student Number: \theblank{3cm}}
+%%%\lfoot{\small\bfseries\ifnum\thepage<\pageref{LastPage}{CONTINUED\\on next page}\else{LAST PAGE}\fi}
+\lfoot{}
+\cfoot{{\small\bfseries Page \thepage\ of \pageref{LastPage}}}
+\rfoot{}
+\renewcommand\headrulewidth{0pt} % Removes funny header line
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{center}
+{\bf Mathematics 4MB3/6MB3 Mathematical Biology\\
+\smallskip
+2016 ASSIGNMENT \textcolor{blue}{4}}\\
+\medskip
+\underline{\emph{Group Name}}: \texttt{{\color{blue}Model Students}}\\
+\medskip
+\underline{\emph{Group Members}}: {\color{blue}Nicole Dumont, Melody Fong, Carolina Weishaar}
+\end{center}
+
+\bigskip
+\noindent
+\textcolor{blue}{This assignment was due on Monday 13 March 2017 at 11:30am.}
+
+\bigskip
+
+\section{Time Series analysis of Recurrent Epidemics}
+
+\begin{enumerate}[(a)]
+
+\item You should have received the following data files by e-mail:
+\begin{center}
+\verb|meas_uk__lon_1944-94_wk.csv|\\
+\verb|meas_uk__lpl_1944-94_wk.csv|
+\end{center}
+These plain text comma-separated-value files list weekly cases of
+measles (in London and Liverpool, England, from 1944 to 1994).  Depending on which research direction you select, you might receive other files in the same \code{ymdc} (year,month,day,count) format, where the count column might contain cases or deaths, for example.  Write the following \Rlogo functions:
+
+\begin{enumerate}[(i)]
+
+\item \magcode{read.ymdc()}.  Read a file in \code{ymdc} format and
+  return a data frame containing these data and including a
+  \code{date} column that has \Rlogo's \magcode{Date} class.  The
+  first (and potentially only) argument to this function should be the
+  \code{filename} of the data file to be read.
+  
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<read.ymdc>>=
+read.ymdc <- function(filename){
+  data <- read.csv(filename, skip=6)
+  ymdcdata <- NULL
+  
+  ymdcdata$date <- as.Date(paste(as.character(data$year), as.character(data$month),as.character(data$day), sep = "-"))
+  ymdcdata$cases <- data$cases
+  ymdcdata <- as.data.frame(ymdcdata)
+  return(ymdcdata)
+}
+@
+
+}
+\end{proof}
+}
+
+\item \magcode{time.plot()}.  Given a data frame produced using
+  \magcode{read.ymdc()}, display the associated time plot.  The first
+  argument of the function should be the data frame.  Further
+  optional argument(s) should allow the user to smooth the time series
+  with a moving average.  By default, this function should create a
+  new plot but there should be an option to add to an existing plot.
+  Implement this by having a logical \code{add} argument that is false
+  by default (\code{add=FALSE}).  This will allow you to add a
+  smoothed version of the time series on top of the raw data, for
+  example.  The final argument should be the ellipsis (\code{\dots})
+  so that details such as colour and line style can be passed to the
+  plotting commands used in this function.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<time.plot>>=
+time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
+  if (dev.cur() == 1L && !identical(add, FALSE)) {
+        warning("'add' will be ignored as there is no existing plot")
+        add <- FALSE
+  }
+  #Moving average smoothing
+  if(isTRUE(ma.smooth)){
+    olddata <- ymdcdata
+    #Replace middle values by moving average
+    for (i in seq(sides+1,length(olddata$cases)-sides,1)){
+      ymdcdata$cases[i] <- mean(olddata$cases[i-sides:i+sides])
+    }
+    #Replace ends of data with NAs
+    ymdcdata$cases[1:sides] <- NA
+    ymdcdata$cases[sides:length(olddata$cases)-sides+1] <- NA
+  }
+  if (isTRUE(add)) {
+    lines(cases~date,ymdcdata, ...)
+  }else plot(cases~date,ymdcdata, ...)
+}
+@
+
+}
+\end{proof}
+}
+
+\item \magcode{periodogram()}.  Given a data frame produced using
+  \magcode{read.ymdc()}, display the associated \emph{period
+    periodogram} (power spectrum as a function of period).  The first
+  argument of the function should be the data frame.  By default, the
+  entire time series should be used, but optional argument(s) should
+  allow the user to specify a time range of interest.  Use \Rlogo's
+  \magcode{spectrum()} function to compute the power spectrum.  Have
+  \code{add} and \code{\dots} arguments as in \magcode{time.plot()}.
+  Note that if \code{v} is a vector containing a time series of
+  interest, you can obtain and plot its \emph{frequency} periodogram
+  as follows.
+<<eval=FALSE>>=
+v <- c()
+s <- spectrum(v, plot=FALSE)
+plot( s$freq, s$spec, type="l")
+@ 
+\end{enumerate}
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<periodogram>>=
+periodogram <- function(ymdcdata, timerange=1:length(ymdcdata$date), add=FALSE, ...){
+  if (dev.cur() == 1L && !identical(add, FALSE)) {
+        warning("'add' will be ignored as there is no existing plot")
+        add <- FALSE
+  }
+  
+  #Set data outside timerange to NAs
+  ymdcdata[setdiff(1:length(ymdcdata$date),timerange),] <- NA
+  
+  
+  ycdata <- ymdcdata
+  ycdata$date <- as.numeric(ycdata$date-ycdata$date[1])/365
+  
+  s <- spectrum(ycdata, plot=FALSE)
+  
+  if (isTRUE(add)) {lon.data
+    lines(1/(s$freq), s$spec, ...)
+  }else plot(1/(s$freq), s$spec[,1], ...)
+  
+}
+@
+
+}
+\end{proof}
+}
+
+\item Using your functions, make a multi-panel plot that clearly shows
+  the temporal pattern of the time series and how its frequency
+  structure changes over time.  Think carefully about how to make this
+  multi-panel figure as clear as possible for yourselves and your
+  readers.  Describe your figure, explaining what aspects of your
+  figure you feel are puzzling or interesting and may be possible to
+  understand using mechanistic mathematical modelling.  (Repeat this
+  for each of the epidemic time series you are given.)
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<measlesplots>>=
+lon.data <- read.ymdc("meas_uk__lon_1944-94_wk.csv")
+par(mfrow=c(2,1))
+time.plot(lon.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in London, England",bty="l",col="red")
+periodogram(lon.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
+
+lpl.data <- read.ymdc("meas_uk__lpl_1944-94_wk.csv")
+par(mfrow=c(2,1))
+time.plot(lpl.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in Liverpool, England", bty="l", col="red")
+periodogram(lpl.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
+  
+@
+
+}
+\end{proof}
+}
+
+\end{enumerate}
+
+\section{Stochastic Epidemic Simulations}
+
+Consider the SI model,
+%
+\begin{equation}\label{E:SI}
+  \frac{dI}{dt} = \beta (N-I) I \,, \qquad I(0)=I_0,
+\end{equation}
+%
+where $\beta$ is the transmission rate, $N$ is the population size and
+$I(t)$ is the number of infected individuals at time $t$.
+
+\begin{enumerate}[(a)]
+
+\item Write an \Rlogo function \magcode{SI.Gillespie()} that uses the
+  Gillespie algorithm to produce a realization of a stochastic process
+  whose mean field dynamics are given by equation \eqref{E:SI} in the
+  limit $N\to\infty$.  Your function should have arguments
+  \code{beta}, \code{N}, \code{I0} and \code{tmax} (the time at which
+  to end the simulation).  You may find it helpful (conceptually) to write
+  equation~\eqref{E:SI} in two-variable form:
+  \begin{subequations}
+    \begin{align}
+      \frac{dS}{dt} &= -\beta S I \,, \qquad S(0)=N-I_0, \\
+      \frac{dI}{dt} &= \beta S I \,, \qquad\quad I(0)=I_0.
+    \end{align}
+  \end{subequations}
+  Note that there is only one type of event that can occur, so the second part of the Gillespie algorithm (what type of event occurred) is trivial for this model.
+  
+\emph{\underline{Note}:} To make stochastic simulations exactly reproducible use \texttt{\color{magenta}set.seed()}.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<SI.Gillespie>>=
+SI.Gillespie <- function(beta, N, I0, tmax){
+  timeseries <- c()
+  timeseries <- rbind(timeseries, c(0,I0))
+  index <- 1
+  while(timeseries[index,1] < tmax){
+    if (timeseries[index,2] < N){
+      rate <- beta*(timeseries[index,2])*(N-timeseries[index,2])
+      timestep <- rexp(n=1, rate= rate)
+      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep, timeseries[index,2]+1))
+    }else{
+      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep*3, timeseries[index,2]))
+    }
+    index <- index+1
+  }
+  return(timeseries)
+}
+@
+
+
+}
+\end{proof}
+}
+
+\item Make a multi-panel plot comparing the deterministic and stochastic dynamics of the SI model for $\beta=1$, $I_0=1$ and $N\in\{32,10^2,10^3,10^4\}$ ($N=32$ is close to $10^{1.5}$).  Each panel should correspond to a different value of $N$ and should show 30 stochastic realizations together with the deterministic solution.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+<<SI.vec.fld>>=
+## Vector Field for SI model
+SI.vector.field <- function(t, vars, parms=c(beta=2,gamma=1)) {
+  with(as.list(c(parms, vars)), {
+    dx <- -beta*x*y # dS/dt
+    dy <- beta*x*y  # dI/dt
+    vec.fld <- c(dx=dx, dy=dy)
+    return(list(vec.fld)) # ode() requires a list
+  })
+}
+@
+
+<<draw.soln,tidy=FALSE>>=
+## Draw solution
+library("deSolve")
+draw.soln <- function(ic=c(x=1,y=0), tmax=1, 
+                      times=seq(0,tmax,by=tmax/500), 
+                      func, parms, ... ) {
+  soln <- ode(ic, times, func, parms)
+  lines(times, soln[,"y"], col="blue", lwd=3, ... )
+}
+@ 
+
+<<SI.Gillespie.plot,eval=FALSE, dev="tikz">>=
+beta <- 1
+I0 <- 1
+tmax <- 0.3
+N <- c(32, 10^2, 10^3, 10^4)
+
+par(mfrow=c(length(N),1))
+for (j in 1:length(N)){
+  ## draw box for plot
+  plot(0,0,xlim=c(0,tmax),ylim=c(0,N[j]+1),xlab="Time", ylab="Prevalence (I)", main=paste("$\\N =", N[j]))
+  line <- c(1:30)
+  for (i in 1:length(line)) {
+    set.seed(line[i])
+    lines(SI.Gillespie(beta, N[j], I0, tmax),lty="dotted",
+            col=line[i+1]) # use a different line colour for each solution
+  }
+  draw.soln(ic=c(x=N[j]-I0,y=I0), tmax=tmax,
+            func= SI.vector.field,
+            parms=c(beta,gamma=1))
+}
+
+@
+
+}
+\end{proof}
+}
+
+\end{enumerate}
+
+\section{$\R_0$ for smallpox}
+
+The natural history of smallpox is shown in \fref{smpxnathist}.  The US Centers for Disease Control and Prevention (CDC) has recently discovered that a group of bioterrorists plans to reintroduce smallpox to the United States.  The CDC has reason to believe that the terrorists are also bioengineers and have successfully altered the virus so that it causes the early rash stage to be twice as long as it was when the virus was last circulating naturally in the 1970s.  Moreover, the existing smallpox vaccine apparently provides no protection against the altered virus.  The CDC wants your opinion on how the alterations to the virus will affect $\R_0$ and the expected final size of an epidemic if the planned attack is successful.
+
+\begin{enumerate}[(a)]
+  \item Construct a compartmental (ODE) smallpox transmission model based on the natural history specified in \fref{smpxnathist}, including vital dynamics but ignoring disease-induced death.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+A compartmental (ODE) smallpox transmission model based on the natural history and assuming time spent in each stage of the disease is expontentially distributed is given by
+\begin{center}
+{\color{black}
+\begin{tikzpicture}[node distance=3cm,auto,>=latex',every node/.append style={align=center}]
+    \node [int, pin={[pinstyleto]above:$\nu$}, pin={[pinstyleout]below:$\mu$}] (a)              {$S$};
+    \node [int, pin={[pinstyleout]below:$\mu$}] (b) [right of=a] {$E$};
+    \node [int, pin={[pinstyleout]below:$\mu$}] (c) [right of=b] {$I_1$};
+    \node [int, pin={[pinstyleout]right:$\mu$}] (d) [right of=c] {$I_2$};
+    \node [int, pin={[pinstyleout]below:$\mu$}] (e) [below of=d] {$I_3$};
+    \node [int, pin={[pinstyleout]below:$\mu$}] (f) [left of=e] {$I_4$};
+    \node [int, pin={[pinstyleout]below:$\mu$}] (g) [left of=f] {$R$};
+    \draw [arrow] (a) -- node[anchor=south] {$ \sum\limits_{i=1}^{4}\beta_i I_i $} (b);
+    \draw [arrow] (b) -- node[anchor=south] {$\sigma$} (c);
+    \draw [arrow] (c) -- node[anchor=south] {$\gamma_1$} (d);
+    \draw [arrow] (d) -- node[anchor=west] {$\gamma_2$} (e);
+    \draw [arrow] (e) -- node[anchor=south] {$\gamma_3$} (f);
+    \draw [arrow] (f) -- node[anchor=south] {$\gamma_4$} (g);                                  
+\end{tikzpicture}
+}
+\end{center}
+
+\begin{align}
+  \frac{dS}{dt} &= \nu - S\sum\limits_{i=1}^{4}\beta_i I_i -\mu S \\ 
+  \frac{dE}{dt} &= S\sum\limits_{i=1}^{4}\beta_i I_i -\sigma E - \mu E \\
+  \frac{dI_1}{dt} &= \sigma E - \gamma_1 I_1 -\mu I_1 \\
+  \dots \\
+  \frac{dI_i}{dt} &= \gamma_{i-1} I_{i-1} -\gamma_{i} I_{i} -\mu I_{i} , \quad \quad 0<i\leq 4\\
+  \dots \\
+  \frac{dR}{dt} &= \gamma_5 I_5 -\mu R 
+\end{align}
+
+The notation of the compartments is as follows
+\begin{center}
+\begin{tabular}{ l | l }
+  Notation & Definition \\
+  \hline			
+  $S$ & Number of susceptible individuals \\
+  $E$ & Number of individuals in the incubation stage \\
+  $I_1$ & Number of individuals in the prodrom stage \\
+  $I_2$ & Number of individuals in the early rash stage \\
+  $I_3$ & Number of individuals in the pustular rash stage \\
+  $I_4$ & Number of individuals in the scarbs stage \\
+  $R$ & Number of recovered individuals\\
+  \hline  
+\end{tabular}
+\end{center}
+
+The notation of the rates and waiting times is as follows
+\begin{center}
+\begin{tabular}{ l | l | l }
+  Notation & Definition & Value for original virus \\
+  \hline			
+  $\nu$ & Birth rate & \\
+  $\beta_i$ & Transmission rate due to individuals from compartment $I_i$ &  \\
+  $\frac{1}{\sigma}$ & Mean time spent in compartment $E$ & 12 days \\
+  $\frac{1}{\gamma_1}$ & Mean time spent in compartment $I_1$ &  3 days \\
+  $\frac{1}{\gamma_2}$ & Mean time spent in compartment $I_2$ & 4 days \\
+  $\frac{1}{\gamma_3}$ & Mean time spent in compartment $I_3$ & 5 days  \\
+  $\frac{1}{\gamma_4}$ & Mean time spent in compartment $I_4$ & 11 days \\
+  $\mu$ & Death rate\\
+  \hline  
+\end{tabular}
+\end{center}
+
+}
+\end{proof}
+}
+
+  \item Use a biological argument to find a formula for $\R_0$.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}\dots beautifully clear and concise text to be inserted here\dots}
+\end{proof}
+}
+
+  \item Calculate $\R_0$ using the next generation matrix approach.  \emph{\underline{Note}:} Your solution should include $\mathcal F$, $\mathcal V$, $F$, $V$, and $FV^{-1}$, in the most human-friendly form you can find.  However, feel free to use symbolic manipulation software such as \texttt{Maple}, {\slshape Mathematica\/} or \href{http://www.sagemath.org/}{sage} to help with the necessary algebra and matrix computations.
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}
+\[
+\mathcal{F}= \text{The inflow of new infected into infected compartments} \\
+=
+\begin{bmatrix}
+  S\sum\limits_{i=1}^{4}\beta_i I_i \\
+  0 \\
+  0 \\
+  0 \\
+  0 
+\end{bmatrix}
+\]
+\[
+\mathcal{V}= \text{The outflow of from infected compartments} \\
+=
+\begin{bmatrix}
+  \sigma E + \mu E \\
+  -\sigma E + \gamma_1 I_1 +\mu I_1 \\
+  -\gamma_{1} I_{1} +\gamma_{2} I_{2} +\mu I_{2} \\
+  -\gamma_{2} I_{2} +\gamma_{3} I_{3} +\mu I_{3} \\
+  -\gamma_{3} I_{3} +\gamma_{4} I_{4} +\mu I_{4} 
+\end{bmatrix}
+\]
+The Jacobians of these vectors at the disease free equilibrium, $(S^*,I_1^*,\dots,I_4^*)=(1,0, \dots, 0)$, are
+\[
+F = D\mathcal{F}_{(S^*,I_i^*)} \\
+=
+\begin{bmatrix}
+  0 & \beta_1 & \beta_2 & \beta_3 & \beta_4 \\
+  0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 0 
+\end{bmatrix}
+\]
+
+\[
+V = D\mathcal{V}_{(S^*,I_i^*)} \\
+= \begin{bmatrix}
+  \sigma + \mu & 0 & 0 & 0 & 0 \\
+  -\sigma & \gamma_1+\mu & 0 & 0 & 0\\
+  0 & -\gamma_1 & \gamma_2+\mu & 0 & 0 \\
+  0 & 0 & -\gamma_2 & \gamma_3+\mu & 0 \\
+  0 & 0 & 0 & -\gamma_3 & \gamma_4+\mu 
+\end{bmatrix}
+\]
+The inverse of $V$ is
+\[
+V^{-1}= 
+\begin{bmatrix}
+  \sigma + \mu & 0 & 0 & 0 & 0 \\
+  -\sigma & \gamma_1+\mu & 0 & 0 & 0\\
+  0 & -\gamma_1 & \gamma_2+\mu & 0 & 0 \\
+  0 & 0 & -\gamma_2 & \gamma_3+\mu & 0 \\
+  0 & 0 & 0 & -\gamma_3 & \gamma_4+\mu 
+\end{bmatrix}
+\]
+
+}
+\end{proof}
+}
+
+  \item Based on your model, and $\R_0\sim5$ for unaltered smallpox, what can you say about the difference in $\R_0$ that can be expected for the newly engineered virus vs.\ the original virus?  
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}\dots beautifully clear and concise text to be inserted here\dots}
+\end{proof}
+}
+
+\item Write a paragraph that you can imagine e-mailing to the CDC, in which you do your best to answer their questions.
+\end{enumerate}
+
+{\color{blue}
+\begin{proof}[Solution]
+{\color{magenta}\dots beautifully clear and concise text to be inserted here\dots}
+\end{proof}
+}
+
+%
+\begin{figure}[h]
+\begin{center}
+\scalebox{1}{
+\includegraphics{smpxnathist_p82.pdf}
+}
+\end{center}
+\caption{The natural history of smallpox infection. The prodrom stage begins with fever but the patient is very rarely contagious. Early rash is the most contagious stage, when the rash develops and transforms into bumps. During the pustular rash stage bumps become pustules, which then turn into scabs during the pustules and scabs stage and fall off during the resolving scabs stage. The infected person is contagious until the last scab falls off.  (\emph{This is Figure 3.4 from page 82 of Olga Krylova's 2011 McMaster University PhD thesis.})}
+\label{F:smpxnathist}
+\end{figure}
+%
+
+\bigskip
+\centerline{\bf--- END OF ASSIGNMENT ---}
+
+\bigskip
+Compile time for this document:
+\today\ @ \thistime
+
+\end{document}
