@@ -404,7 +404,11 @@ The notation of the rates and waiting times is as follows
 
 {\color{blue}
 \begin{proof}[Solution]
-{\color{magenta}\dots beautifully clear and concise text to be inserted here\dots}
+{\color{magenta} In this model, there exists four linked infections compartments that vary based on their transmission rates and removal rates and an incubation stage. As a result, the amount of time an indivual is able to infect an individual from the susceptible population in each specific compartment is based on the corpament $\gamma_i$ value and the $\gamma_i$ value of the compartments that came before it. In addition to this, the proportion of individuals that arrive to each compartment is based on the combined death rate of the previous compartment. Therefore, inorder to calculate $\R_0$ it is essential that each compartment is observed as a seperate entity in conjunction with the affects of the previous compartments. This analysis leads to the following equation, 
+\begin{equation}
+R_0 = \frac{\sigma}{\sigma+\mu} \cdot \frac{1}{\gamma_1 + \mu} \cdot \left(\beta_1 + \beta_2 \cdot \frac{1}{\cdot (\gamma_2 + \mu)} + \beta_3 \cdot \frac{1}{(\gamma_2 + \mu) \cdot (\gamma_3 + \mu)} + \beta_4 \cdot \frac{1}{(\gamma_2 + \mu) \cdot (\gamma_3 + \mu) \cdot (\gamma_4 + \mu)}\right)
+\end{equation}
+}
 \end{proof}
 }
 
