@@ -229,7 +229,7 @@ mtext("Weekly Cases of Measles, Liverpool, England (1944-94)",
 time.plot(lpl_data,main="")
 periodogram(lpl_data,add=TRUE,subset=1:5)
 @
-The figure shows weekly cases of measles in London and Liverpool, England from 1944-1994. Comparing the time plots on the left, the two sets of data do not appear to differ significantly, but through mechanistic mathematical modelling and analysis of the periodogram, distinguishments can be made. The London epidemic appears to have a strong period peak at 2 years as well as a weaker one at 3 years while the Liverpool data appears to have noisier dynamics with two fairly strong peaks at periods of 2 and 3 years. While these two cities differ in population size, with Liverpool having the smaller population, the noise observed can be expected due to the effect of outlier data/stochasticity effect being larger. Yet, in terms of other environmental factors such as climate and culture, the two cities are fairly similiar by proximity. Assuming that the virus strain is also similiar, then the effect on the population should be comparable, making the difference in epidemic period quite strange. To further investigate this, a model should be constructed to fit the data to determine which variables (ex. demographic stochasticity, seasonality, ...etc) affect this pattern.
+The figure shows weekly cases of measles in London and Liverpool, England from 1944-1994. Comparing the time plots on the left, the two sets of data do not appear to differ significantly, but through mechanistic mathematical modelling and analysis of the periodogram, distinguishments can be made. The London epidemic appears to have a strong period peak at 2 years as well as a weaker one at 3 years while the Liverpool data appears to have noisier dynamics with two fairly strong peaks at periods of 2 and 3 years. While these two cities differ in population size, with Liverpool having the smaller population, the noise observed can be expected due to the effect of outlier data/stochasticity effect being larger. Yet, in terms of other environmental factors such as climate and culture, the two cities are fairly similar by proximity. Assuming that the virus strain is also similar, then the effect on the population should be comparable, making the difference in epidemic period quite strange. To further investigate this, a model should be constructed to fit the data to determine which variables (ex. demographic stochasticity, seasonality, ...etc) affect this pattern.
 }
 \end{proof}
 }
@@ -271,17 +271,27 @@ $I(t)$ is the number of infected individuals at time $t$.
 {\color{magenta}
 <<SI.Gillespie>>=
 SI.Gillespie <- function(beta, N, I0, tmax){
+  ## Set seed for reproducibility
+  set.seed(314159265)
+  
+  ## Initialize and set ic for time series
   timeseries <- c()
   timeseries <- rbind(timeseries, c(0,I0))
   index <- 1
+  ## Index for time = t + dt
   while(timeseries[index,1] < tmax){
+    ## For I < N, calculate Infected = I + dI
     if (timeseries[index,2] < N){
       rate <- beta*(timeseries[index,2])*(N-timeseries[index,2])
+      ## Randomize new dt between iterations
       timestep <- rexp(n=1, rate= rate)
-      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep, timeseries[index,2]+1))
+      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep,
+                                        timeseries[index,2]+1))
     }else{
-      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep*3, timeseries[index,2]))
+      timeseries <- rbind(timeseries, c(timeseries[index,1]+timestep*3,
+                                        timeseries[index,2]))
     }
+    ## Iterate
     index <- index+1
   }
   return(timeseries)
@@ -321,21 +331,26 @@ draw.soln <- function(ic=c(x=1,y=0), tmax=1,
 }
 @ 
 
-<<SI.Gillespie.plot,eval=FALSE, dev="tikz">>=
+<<SI.Gillespie.plot>>=
+## Initial conditions
 beta <- 1
 I0 <- 1
 tmax <- 0.3
 N <- c(32, 10^2, 10^3, 10^4)
 
+## Draw multi-panel figure
 par(mfrow=c(length(N),1))
 for (j in 1:length(N)){
-  ## draw box for plot
-  plot(0,0,xlim=c(0,tmax),ylim=c(0,N[j]+1),xlab="Time", ylab="Prevalence (I)", main=paste("$\\N =", N[j]))
+  ## Plot deterministic solution
+  plot(0,0,xlim=c(0,tmax),ylim=c(0,N[j]+1),xlab="Time",
+       ylab="Prevalence (I)", main=paste("N =", N[j]))
+  ## Plot 30 simulations for each value of N
   line <- c(1:30)
   for (i in 1:length(line)) {
     set.seed(line[i])
     lines(SI.Gillespie(beta, N[j], I0, tmax),lty="dotted",
-            col=line[i+1]) # use a different line colour for each solution
+            col=line[i+1]) 
+    # Use a different line colour for each simulation
   }
   draw.soln(ic=c(x=N[j]-I0,y=I0), tmax=tmax,
             func= SI.vector.field,
@@ -360,7 +375,7 @@ The natural history of smallpox is shown in \fref{smpxnathist}.  The US Centers 
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-A compartmental (ODE) smallpox transmission model based on the natural history and assuming time spent in each stage of the disease is expontentially distributed is given by
+A compartmental (ODE) smallpox transmission model based on the natural history and assuming time spent in each stage of the disease is exponentially distributed is given by
 \begin{center}
 {\color{black}
 \begin{tikzpicture}[node distance=3cm,auto,>=latex',every node/.append style={align=center}]
@@ -401,7 +416,7 @@ The notation of the compartments is as follows
   $I_1$ & Proportion of population in the prodrom stage \\
   $I_2$ & Proportion of population in the early rash stage \\
   $I_3$ & Proportion of population in the pustular rash stage \\
-  $I_4$ & Proportion of population in the scarbs stage \\
+  $I_4$ & Proportion of population in the scabs stage \\
   $R$ & Proportion of population that is recovered\\
   \hline  
 \end{tabular}
@@ -432,7 +447,7 @@ The notation of the rates and waiting times is as follows
 
 {\color{blue}
 \begin{proof}[Solution]
-{\color{magenta} In this model, there exists four linked infections compartments that vary based on their transmission rates and removal rates and an incubation stage. As a result, the amount of time an indivual is able to infect an individual from the susceptible population in each specific compartment is based on the corpament $\gamma_i$ value and the $\gamma_i$ value of the compartments that came before it. In addition to this, the proportion of individuals that arrive to each compartment is based on the combined death rate of the previous compartment. Therefore, inorder to calculate $\R_0$ it is essential that each compartment is observed as a seperate entity in conjunction with the affects of the previous compartments. This analysis leads to the following equation, 
+{\color{magenta} In this model, there exists four linked infections compartments that vary based on their transmission rates and removal rates and an incubation stage. As a result, the amount of time an individual is able to infect an individual from the susceptible population in each specific compartment is based on the compartment $\gamma_i$ value and the $\gamma_i$ value of the compartments that came before it. In addition to this, the proportion of individuals that arrive to each compartment is based on the combined death rate of the previous compartment. Therefore, in order to calculate $\R_0$ it is essential that each compartment is observed as a separate entity in conjunction with the affects of the previous compartments. This analysis leads to the following equation, 
 \begin{equation}
 R_0 = \frac{\sigma}{\sigma+\mu} \cdot \frac{1}{\gamma_1 + \mu} \cdot \left(\beta_1 + \beta_2 \cdot \frac{1}{\cdot (\gamma_2 + \mu)} + \beta_3 \cdot \frac{1}{(\gamma_2 + \mu) \cdot (\gamma_3 + \mu)} + \beta_4 \cdot \frac{1}{(\gamma_2 + \mu) \cdot (\gamma_3 + \mu) \cdot (\gamma_4 + \mu)}\right)
 \end{equation}
