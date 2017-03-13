@@ -69,18 +69,40 @@ measles (in London and Liverpool, England, from 1944 to 1994).  Depending on whi
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<read.ymdc>>=
-read.ymdc <- function(filename){
-  data <- read.csv(filename, skip=6)
-  ymdcdata <- NULL
-  
-  ymdcdata$date <- as.Date(paste(as.character(data$year), as.character(data$month),as.character(data$day), sep = "-"))
-  ymdcdata$cases <- data$cases
-  ymdcdata <- as.data.frame(ymdcdata)
-  return(ymdcdata)
+<<read.ymdc,warning=FALSE,message=FALSE,error=FALSE>>=
+read.ymdc <- function(filename) {
+  ## Read .csv file
+  data <- read.csv(filename,stringsAsFactors = FALSE)
+  ## Get all characters as numerics
+  datafile <- as.numeric(unlist(data))
+
+dataframe <-  for (i in 1:length(datafile)){
+  ## For all numeric values,
+    if(is.na(datafile[i])==FALSE){
+      ## Initialize vectors
+      year <- c();month <- c(); day <- c(); cases <- c();
+      ## Take every 4th value as year from first numeric
+      year <- datafile[seq(i,
+              length(datafile)-(length(datafile)-i)%%4,4)]
+      ## Every 4th value as month from second numeric
+      month <- datafile[seq(i+1,
+               length(datafile)-(length(datafile)-(i+1))%%4,4)]
+      ## Every 4th value as day from third numeric
+      day <- datafile[seq(i+2,
+             length(datafile)-(length(datafile)-(i+2))%%4,4)]
+      ## Every 4th value as case from fourth numeric
+      cases <- datafile[seq(i+3,
+               length(datafile)-(length(datafile)-(i+3))%%4,4)]
+      ## Paste year, month, day together as R date
+      date <- as.Date(paste(year,month,day),"%Y %m %d")
+      ## Create dataframe
+      dataframe <- data.frame(date,cases)
+      return(dataframe)
+    }
+}
+return(dataframe)
 }
 @
-
 }
 \end{proof}
 }
@@ -102,26 +124,23 @@ read.ymdc <- function(filename){
 \begin{proof}[Solution]
 {\color{magenta}
 <<time.plot>>=
-time.plot <- function(ymdcdata, ma.smooth=FALSE, sides = 1, add=FALSE, ...){
-  if (dev.cur() == 1L && !identical(add, FALSE)) {
-        warning("'add' will be ignored as there is no existing plot")
-        add <- FALSE
+time.plot <- function(dataframe,add=FALSE,width=10,...){
+  ## Plot time plot
+  plot(cases~date,dataframe,type="l",
+       xlab="Date",ylab="Cases",xaxs="i",yaxs="i",
+     las=1,...)
+  
+  if(add==TRUE && !missing(width)){
+    ## Create moving average
+  moving.average <- rep(1,width)/width
+    ## Use filter() to smoothen dataframe
+  smooth.dataframe <- filter(dataframe,moving.average)
+  ## Plot smooth time plot in years after first 
+  plot(smooth.dataframe[,2],xlab="Years After First in Dataset",
+       ylab="Cases",xaxt="n",las=1,...)
+  axis(1,seq(1,as.integer(nrow(dataframe)),520),
+       labels=seq(1,ceiling(nrow(dataframe)/52),10))
   }
-  #Moving Average 
-  #Code fixed, but we can also replace this section with: filter(ymdcdata,rep(1,sides), method = "convolution")))
-  if(isTRUE(ma.smooth)){
-        olddata <- ymdcdata
-    #Replace middle values by moving average
-    for (i in seq(sides,length(olddata$cases)-1,1)){
-      ymdcdata$cases[i] <- mean(olddata$cases[i-sides:i+sides])
-    }
-    #Replace ends of data with NAs
-    ymdcdata$cases[1:sides] <- NA
-    ymdcdata$cases[sides:length(olddata$cases)-sides+1] <- NA
-  }
-  if (isTRUE(add)) {
-    lines(cases~date,ymdcdata, ...)
-  }else {plot(cases~date,ymdcdata, ...)}
 }
 @
 
@@ -151,25 +170,28 @@ plot( s$freq, s$spec, type="l")
 \begin{proof}[Solution]
 {\color{magenta}
 <<periodogram>>=
-periodogram <- function(ymdcdata, timerange=1:length(ymdcdata$date), add=FALSE, ...){
-  if (dev.cur() == 1L && !identical(add, FALSE)) {
-        warning("'add' will be ignored as there is no existing plot")
-        add <- FALSE
+periodogram <- function(dataframe,add=FALSE,subset=1:52,...){
+  if(add==TRUE && !missing(subset)){
+    ## Subset the dataframe by time range of interest (in years)
+    sub <- dataframe[1:(length(subset)*52),]
+    ## Create and plot spectral density vs period data
+    sub_s <- spectrum(sub,plot=FALSE)
+    plot(1/sub_s$freq,sub_s$spec[,2],type="l",
+         xlab="Period (years)",ylab="Spectral Density",xaxt="n",
+         ...)
+    axis(1,seq(1,as.integer(nrow(sub)),52),
+         labels=seq(1,ceiling(nrow(sub)/52),1))
   }
-  
-  #Set data outside timerange to NAs
-  ymdcdata[setdiff(1:length(ymdcdata$date),timerange),] <- NA
-  
-  
-  ycdata <- ymdcdata
-  ycdata$date <- as.numeric(ycdata$date-ycdata$date[1])/365
-  
-  s <- spectrum(ycdata, plot=FALSE)
-  
-  if (isTRUE(add)) {lon.data
-    lines(1/(s$freq), s$spec, ...)
-  }else plot(1/(s$freq), s$spec[,1], ...)
-  
+  else{
+    ## create and plot spectral density vs period data for 
+## entire time series
+      s <- spectrum(dataframe,plot=FALSE)
+  plot(1/s$freq,s$spec[,2],type="l",
+       xlab="Period (years)",ylab="Spectral Density",xaxt="n",
+       ...)
+  axis(1,seq(1,as.integer(nrow(dataframe)),520),
+       labels=seq(1,ceiling(nrow(dataframe)/52),10))
+  }
 }
 @
 
@@ -189,19 +211,25 @@ periodogram <- function(ymdcdata, timerange=1:length(ymdcdata$date), add=FALSE, 
 {\color{blue}
 \begin{proof}[Solution]
 {\color{magenta}
-<<measlesplots>>=
-lon.data <- read.ymdc("meas_uk__lon_1944-94_wk.csv")
-par(mfrow=c(2,1))
-time.plot(lon.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in London, England",bty="l",col="red")
-periodogram(lon.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
+<<Q1b,warning=FALSE,error=FALSE>>=
+## Read and record the data
+lon_data <- read.ymdc("meas_uk__lon_1944-94_wk.csv")
+lpl_data <- read.ymdc("meas_uk__lpl_1944-94_wk.csv")
 
-lpl.data <- read.ymdc("meas_uk__lpl_1944-94_wk.csv")
-par(mfrow=c(2,1))
-time.plot(lpl.data, ma.smooth=FALSE, add=FALSE, type="l", xlab="Date", ylab="Cases", main="Weekly Cases of Measles in Liverpool, England", bty="l", col="red")
-periodogram(lpl.data, add=FALSE, type="l", xlab="Years", ylab="", main="Period Periodogram",bty="l",col="blue")
-  
+par(mfrow=c(2,2))
+## Plot London time plot and period periodogram
+time.plot(lon_data,main="")
+periodogram(lon_data,add=TRUE,subset=1:5)
+mtext("Weekly Cases of Measles, London, England (1944-94)",
+      side=3,line=-2,outer=TRUE)
+
+## Plot Liverpool time plot and period periodogram
+mtext("Weekly Cases of Measles, Liverpool, England (1944-94)",
+      side=3,line=-23,outer=TRUE)
+time.plot(lpl_data,main="")
+periodogram(lpl_data,add=TRUE,subset=1:5)
 @
-
+The figure shows weekly cases of measles in London and Liverpool, England from 1944-1994. Comparing the time plots on the left, the two sets of data do not appear to differ significantly, but through mechanistic mathematical modelling and analysis of the periodogram, distinguishments can be made. The London epidemic appears to have a strong period peak at 2 years as well as a weaker one at 3 years while the Liverpool data appears to have noisier dynamics with two fairly strong peaks at periods of 2 and 3 years. While these two cities differ in population size, with Liverpool having the smaller population, the noise observed can be expected due to the effect of outlier data/stochasticity effect being larger. Yet, in terms of other environmental factors such as climate and culture, the two cities are fairly similiar by proximity. Assuming that the virus strain is also similiar, then the effect on the population should be comparable, making the difference in epidemic period quite strange. To further investigate this, a model should be constructed to fit the data to determine which variables (ex. demographic stochasticity, seasonality, ...etc) affect this pattern.
 }
 \end{proof}
 }
